@@ -1,5 +1,6 @@
 # Makefile
 
+include core/os.mk
 include core/libs.mk
 include core/dev.mk
 

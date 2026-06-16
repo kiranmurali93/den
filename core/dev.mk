@@ -1,7 +1,5 @@
 # core/dev.mk
 
-include core/os.mk
-
 .PHONY: install-dev update-dev install-nvm update-nvm
 
 # -----------------------

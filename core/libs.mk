@@ -1,7 +1,5 @@
 # core/libs.mk
 
-include core/os.mk
-
 .PHONY: install-libs update-libs
 
 install-libs: check-os
