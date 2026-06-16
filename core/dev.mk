@@ -6,7 +6,7 @@
 # NVM
 # -----------------------
 
-install-nvm: check-os
+install-nvm: check-os  ## Install NVM (Node Version Manager)
 	@echo "Installing NVM..."
 	curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
 
@@ -17,7 +17,7 @@ install-nvm: check-os
 
 	@echo "NVM installed and configured. Run: source ~/.zshrc"
 
-update-nvm: check-os
+update-nvm: check-os  ## Update NVM to latest
 	@echo "Updating NVM..."
 	cd ~/.nvm && git pull
 
@@ -26,6 +26,6 @@ update-nvm: check-os
 # DEV ENTRY POINT
 # -----------------------
 
-install-dev: install-nvm
+install-dev: install-nvm  ## Install all dev tools
 
-update-dev: update-nvm
+update-dev: update-nvm  ## Update all dev tools

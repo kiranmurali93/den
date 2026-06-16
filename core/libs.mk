@@ -2,7 +2,7 @@
 
 .PHONY: install-libs update-libs
 
-install-libs: check-os
+install-libs: check-os  ## Install system packages (git, curl, wget)
 ifeq ($(OS), Darwin)
 	@echo "Mac detected → install using brew (TODO)"
 	# brew install git curl wget
@@ -18,7 +18,7 @@ else
 endif
 
 
-update-libs: check-os
+update-libs: check-os  ## Update system packages
 ifeq ($(OS), Darwin)
 	@echo "Mac detected → updating via brew"
 	# brew update && brew upgrade
