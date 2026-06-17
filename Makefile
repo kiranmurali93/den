@@ -1,5 +1,12 @@
 # Makefile
 
+SHELL := /bin/bash
+.SHELLFLAGS := -eo pipefail -c
+
+ifeq ($(wildcard core/os.mk),)
+$(error Run make from the repo root directory)
+endif
+
 include core/os.mk
 include core/libs.mk
 include core/dev.mk
