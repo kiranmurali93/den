@@ -10,6 +10,7 @@ endif
 include core/os.mk
 include core/libs.mk
 include core/dev.mk
+include core/dotfiles.mk
 
 .PHONY: install update info help
 
