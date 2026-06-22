@@ -11,11 +11,12 @@ include core/os.mk
 include core/libs.mk
 include core/dev.mk
 include core/dotfiles.mk
+include core/obsidian.mk
 
 .PHONY: install update info help
 
-install: install-libs install-dev  ## Install system packages and dev tools
-update: update-libs update-dev     ## Update system packages and dev tools
+install: install-libs install-dev install-syncthing  ## Install system packages and dev tools
+update: update-libs update-dev                       ## Update system packages and dev tools
 
 info:                              ## Show system information
 ifeq ($(OS),Darwin)
