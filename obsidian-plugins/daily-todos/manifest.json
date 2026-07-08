@@ -1,0 +1,9 @@
+{
+  "id": "daily-todos",
+  "name": "Daily Todos",
+  "version": "1.0.0",
+  "minAppVersion": "0.15.0",
+  "description": "Quickly open or create daily todo notes for any date.",
+  "author": "Kiran",
+  "isDesktopOnly": false
+}
