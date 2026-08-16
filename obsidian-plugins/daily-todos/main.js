@@ -11,7 +11,11 @@ const DEFAULT_SETTINGS = {
     todosFolder: 'todos',
     dateFormat: 'YYYY-MM-DD',
     template: '- [ ] ',
+    archiveFolder: 'todos/archive',
+    archiveKeepCount: 30,
 };
+
+const DATE_NOTE_RE = /^(\d{4})-(\d{2})-(\d{2})\.md$/;
 
 // ── Date-picker modal ────────────────────────────────────────────────────────
 
@@ -70,6 +74,57 @@ class DatePickerModal extends obsidian.Modal {
         });
 
         // Focus the date input
+        setTimeout(() => input.focus(), 50);
+    }
+
+    onClose() {
+        this.contentEl.empty();
+    }
+}
+
+// ── Archive modal ────────────────────────────────────────────────────────────
+
+class ArchiveModal extends obsidian.Modal {
+    constructor(app, plugin) {
+        super(app);
+        this.plugin = plugin;
+    }
+
+    onOpen() {
+        const { contentEl } = this;
+        contentEl.empty();
+        contentEl.createEl('h3', { text: 'Archive old todos' });
+        contentEl.createEl('p', {
+            text: `Keep the N most recent daily notes and move the rest into "${this.plugin.settings.archiveFolder}".`,
+        });
+
+        const input = contentEl.createEl('input', {
+            type: 'number',
+            value: String(this.plugin.settings.archiveKeepCount),
+        });
+        input.min = '0';
+        input.style.cssText = 'width:100%;padding:6px;font-size:1rem;margin-bottom:12px;box-sizing:border-box;';
+
+        const statusEl = contentEl.createDiv();
+        statusEl.style.cssText = 'margin-bottom:12px;opacity:0.8;font-size:0.9em;';
+
+        const archiveBtn = contentEl.createEl('button', { text: 'Archive' });
+        archiveBtn.style.cssText = 'width:100%;padding:8px;font-size:1rem;cursor:pointer;';
+        archiveBtn.addEventListener('click', async () => {
+            const n = parseInt(input.value, 10);
+            if (isNaN(n) || n < 0) {
+                new obsidian.Notice('Please enter a valid number of notes to keep.');
+                return;
+            }
+            archiveBtn.disabled = true;
+            statusEl.setText('Archiving…');
+            const count = await this.plugin.archiveOldTodos(n);
+            this.plugin.settings.archiveKeepCount = n;
+            await this.plugin.saveSettings();
+            new obsidian.Notice(count > 0 ? `Archived ${count} todo note(s).` : 'Nothing to archive.');
+            this.close();
+        });
+
         setTimeout(() => input.focus(), 50);
     }
 
@@ -213,6 +268,29 @@ class DailyTodosSettingTab extends obsidian.PluginSettingTab {
                 text.inputEl.rows = 6;
                 text.inputEl.style.width = '100%';
             });
+
+        new obsidian.Setting(containerEl)
+            .setName('Archive folder')
+            .setDesc('Vault path where archived todo notes are moved. Notes are grouped into YYYY/MM subfolders.')
+            .addText(text => text
+                .setPlaceholder('todos/archive')
+                .setValue(this.plugin.settings.archiveFolder)
+                .onChange(async (value) => {
+                    this.plugin.settings.archiveFolder = value.trim() || 'todos/archive';
+                    await this.plugin.saveSettings();
+                }));
+
+        new obsidian.Setting(containerEl)
+            .setName('Notes to keep')
+            .setDesc('Default number of most-recent daily notes to keep when archiving.')
+            .addText(text => text
+                .setPlaceholder('30')
+                .setValue(String(this.plugin.settings.archiveKeepCount))
+                .onChange(async (value) => {
+                    const n = parseInt(value, 10);
+                    this.plugin.settings.archiveKeepCount = isNaN(n) || n < 0 ? 30 : n;
+                    await this.plugin.saveSettings();
+                }));
     }
 }
 
@@ -280,6 +358,15 @@ class DailyTodosPlugin extends obsidian.Plugin {
             },
         });
 
+        // Command: archive old todos
+        this.addCommand({
+            id: 'archive-old-todos',
+            name: 'Archive old todos…',
+            callback: () => {
+                new ArchiveModal(this.app, this).open();
+            },
+        });
+
         this.addSettingTab(new DailyTodosSettingTab(this.app, this));
     }
 
@@ -318,6 +405,46 @@ class DailyTodosPlugin extends obsidian.Plugin {
 
         const leaf = this.app.workspace.getLeaf(false);
         await leaf.openFile(file);
+    }
+
+    async ensureFolder(path) {
+        const parts = path.split('/').filter(Boolean);
+        let current = '';
+        for (const part of parts) {
+            current = current ? `${current}/${part}` : part;
+            if (!this.app.vault.getAbstractFileByPath(current)) {
+                await this.app.vault.createFolder(current);
+            }
+        }
+    }
+
+    // Keeps the `keepCount` most recent daily notes in the todos folder and
+    // moves the rest into archiveFolder/YYYY/MM/. Returns the number archived.
+    async archiveOldTodos(keepCount) {
+        const folder = this.app.vault.getAbstractFileByPath(this.settings.todosFolder);
+        if (!(folder instanceof obsidian.TFolder)) return 0;
+
+        const dated = folder.children
+            .filter(f => f instanceof obsidian.TFile && DATE_NOTE_RE.test(f.name))
+            .sort((a, b) => (a.name < b.name ? 1 : -1)); // newest first
+
+        const toArchive = dated.slice(keepCount);
+        let archivedCount = 0;
+
+        for (const file of toArchive) {
+            const match = file.name.match(DATE_NOTE_RE);
+            const [, year, month] = match;
+            const destFolder = `${this.settings.archiveFolder}/${year}/${month}`;
+            await this.ensureFolder(destFolder);
+
+            const destPath = `${destFolder}/${file.name}`;
+            if (this.app.vault.getAbstractFileByPath(destPath)) continue;
+
+            await this.app.fileManager.renameFile(file, destPath);
+            archivedCount++;
+        }
+
+        return archivedCount;
     }
 
     async loadSettings() {
