@@ -9,10 +9,13 @@ Den is a lightweight Makefile-based tool to **set up and manage your development
 ```
 den/
 ├── Makefile          # Entry point
+├── dotfiles/         # Tracked dotfiles (zshrc, etc.)
 └── core/
     ├── os.mk         # OS + distro detection
     ├── libs.mk       # System packages (dnf, apt, etc.)
-    └── dev.mk        # Dev tools (NVM, etc.)
+    ├── dev.mk        # Dev tools (NVM, etc.)
+    ├── dotfiles.mk   # Symlink dotfiles, install missing zsh plugins
+    └── obsidian.mk   # Syncthing + Obsidian vault setup
 ```
 
 ---
@@ -63,6 +66,22 @@ Supports:
 * Installs NVM (Node Version Manager)
 * Automatically configures `~/.zshrc`
 * Loads NVM in the current session
+
+---
+
+### Dotfiles (`dotfiles.mk`)
+
+* `make link-dotfiles` — symlinks tracked dotfiles (e.g. `~/.zshrc`) into place, backing up any existing file, and auto-installs any oh-my-zsh plugins reported missing
+* `make unlink-dotfiles` — removes the symlinks and restores the backup
+* `make update-dotfiles` — copies your current `~/.zshrc` back into the repo so changes can be committed
+
+---
+
+### Obsidian / Syncthing (`obsidian.mk`)
+
+* `make install-syncthing` — installs Syncthing and enables it as a systemd user service
+* `make syncthing-status` — shows whether Syncthing is running and the web UI URL
+* `make setup-vault` — prints your device ID and next steps for syncing your Obsidian vault (`$(VAULT_PATH)`, default `~/secondary-brain`)
 
 ---
 
